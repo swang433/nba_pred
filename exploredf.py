@@ -1,8 +1,7 @@
 import pandas as pd
 import numpy as np
 
-games = pd.read_csv(r'/Users/rw091402/Desktop/code/python/nba_pred/nba_games/games.csv')
-details = pd.read_csv(r'/Users/rw091402/Desktop/code/python/nba_pred/nba_games/games_details.csv', low_memory=False)
+games = pd.read_csv('nba_games/games.csv')
 pd.set_option('display.max_columns', None)
 
 ########## pt1
@@ -91,7 +90,7 @@ L2_all = L2_all.sort_values(['TEAM_ID', 'GAME_DATE_EST'])
 L2_all['hot_streak'] = L2_all.groupby('TEAM_ID')['PTS'].transform(
     lambda x: ((x.shift(1) >= 110) & (x.shift(2) >= 110)).astype(int)
 )
-# print(L2_all)
+print(L2_all)
 #CONTINUE!!!! FIX ME!!!!!! :,D
 #merge back
 
