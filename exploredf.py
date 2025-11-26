@@ -91,7 +91,7 @@ L2_all = L2_all.sort_values(['TEAM_ID', 'GAME_DATE_EST'])
 L2_all['hot_streak'] = L2_all.groupby('TEAM_ID')['PTS'].transform(
     lambda x: ((x.shift(1) >= 110) & (x.shift(2) >= 110)).astype(int)
 )
-print(L2_all)
+# print(L2_all)
 #CONTINUE!!!! FIX ME!!!!!! :,D
 #merge back
 
