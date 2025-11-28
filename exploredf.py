@@ -28,7 +28,7 @@ avg_pts_home = games.groupby('HOME_TEAM_ID')['PTS_home'].mean()
 games_per_team = games.groupby('HOME_TEAM_ID').size()
 
 # 8. Find the team with highest average FG% at home
-best_shooting_team = games.groupby('FG_PCT_home')
+best_shooting_home_team = games.groupby('HOME_TEAM_ID').agg({'FG_PCT_home': 'mean'}).sort_values('FG_PCT_home', ascending=False).head(1)
 
 # 9. Calculate win percentage for each team at home
 home_win_pct = games.groupby('HOME_TEAM_ID')['HOME_TEAM_WINS'].mean()
@@ -90,10 +90,22 @@ L2_all = L2_all.sort_values(['TEAM_ID', 'GAME_DATE_EST'])
 L2_all['hot_streak'] = L2_all.groupby('TEAM_ID')['PTS'].transform(
     lambda x: ((x.shift(1) >= 110) & (x.shift(2) >= 110)).astype(int)
 )
-print(L2_all)
-#CONTINUE!!!! FIX ME!!!!!! :,D
-#merge back
+# merge with home stats
+games = games.merge(
+    L2_all[['GAME_ID', 'TEAM_ID', 'hot_streak']], 
+    left_on=['GAME_ID', 'HOME_TEAM_ID'], 
+    right_on=['GAME_ID', 'TEAM_ID'], 
+    how='left'
+).rename(columns={'hot_streak': 'HOT_STREAK_home'}).drop('TEAM_ID', axis=1)
 
+#merge with away stats
+games = games.merge(
+    L2_all[['GAME_ID', 'TEAM_ID', 'hot_streak']], 
+    left_on=['GAME_ID', 'VISITOR_TEAM_ID'], 
+    right_on=['GAME_ID', 'TEAM_ID'], 
+    how='left'
+).rename(columns={'hot_streak': 'HOT_STREAK_away'}).drop('TEAM_ID', axis=1)
+print(games)
 # 14. Calculate rolling standard deviation of points (last 5 games)
 # This measures consistency
 games['pts_std_L5'] = ...
