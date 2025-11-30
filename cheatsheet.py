@@ -50,7 +50,7 @@ away_ast = games.groupby('VISITOR_TEAM_ID')['AST_away'].sum()
 total_ast = home_ast.add(away_ast, fill_value=0)
 
 ########## pt3
-# 11. Calculate each team's average points in their last 3 home games
+# 11. Calculate each team's average points in their last 3 HOME games
 # Hint: groupby + rolling + shift
 
 games['pts_L3'] = games.groupby('HOME_TEAM_ID')['PTS_home'].transform( #rolling -> mean -> shift
@@ -172,6 +172,8 @@ REST_all['rest_days'] = REST_all.groupby('TEAM_ID')['GAME_DATE_EST'].transform(
     lambda x: x.diff().dt.days
 )
 
+REST_all['b2b'] = (REST_all['rest_days'] == 1).astype('int')
+
 # Merge back to games DataFrame for both home and away teams
 games = games.merge(
     REST_all[['GAME_ID', 'TEAM_ID', 'rest_days']], 
@@ -192,10 +194,11 @@ games['GAME_DATE_EST'] = pd.to_datetime(games['GAME_DATE_EST'])
 games['day_of_week'] = games['GAME_DATE_EST'].dt.day_of_week
 
 # 17. Create 'month' feature (1-12)
-games['month'] = ...
+games['month'] = games['GAME_DATE_EST'].dt.month
 
 # 18. Flag back-to-back games (rest_days == 1)
-games['is_b2b'] = ...
+games['is_b2b'] = ((games['rest_days_home'] == 1) | (games['rest_days_away'] == 1)).astype('int')
+print(games)
 
 # 19. Calculate cumulative wins for each team
 # Hint: groupby + cumsum
