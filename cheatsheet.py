@@ -197,7 +197,20 @@ games['day_of_week'] = games['GAME_DATE_EST'].dt.day_of_week
 games['month'] = games['GAME_DATE_EST'].dt.month
 
 # 18. Flag back-to-back games (rest_days == 1)
-games['is_b2b'] = ((games['rest_days_home'] == 1) | (games['rest_days_away'] == 1)).astype('int')
+games = games.merge(
+    REST_all[['GAME_ID', 'TEAM_ID', 'b2b']],
+    left_on=['GAME_ID', 'HOME_TEAM_ID'], 
+    right_on=['GAME_ID', 'TEAM_ID'], 
+    how='left'
+).rename(columns={'b2b': 'B2B_home'}).drop('TEAM_ID', axis=1)
+
+games = games.merge(
+    REST_all[['GAME_ID', 'TEAM_ID', 'b2b']], 
+    left_on=['GAME_ID', 'VISITOR_TEAM_ID'],
+    right_on=['GAME_ID', 'TEAM_ID'], 
+    how='left'
+).rename(columns={'b2b': 'B2B_away'}).drop('TEAM_ID', axis=1)
+games['B2B'] = ((games['B2B_home'] == 1) | (games['B2B_away'] == 1)).astype('int')
 print(games)
 
 # 19. Calculate cumulative wins for each team
