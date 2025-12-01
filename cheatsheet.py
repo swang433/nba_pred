@@ -211,11 +211,27 @@ games = games.merge(
     how='left'
 ).rename(columns={'b2b': 'B2B_away'}).drop('TEAM_ID', axis=1)
 games['B2B'] = ((games['B2B_home'] == 1) | (games['B2B_away'] == 1)).astype('int')
-print(games)
 
 # 19. Calculate cumulative wins for each team
 # Hint: groupby + cumsum
-games['cumulative_wins'] = ...
+'''
+intuition: use HOME_TEAM_WINS == 1 with HOME_TEAM_ID to find when a certain team wins at home
+and use HOME_TEAM_WINS == 0 and VISITOR_TEAM_ID to find when a team wins an away game
+'''
+#sort to ensure chronological order
+games = games.sort_values(['HOME_TEAM_ID', 'GAME_DATE_EST'])
+games = games.sort_values(['VISITOR_TEAM_ID', 'GAME_DATE_EST'])
+
+#cumulative sum home
+WINS_CUMSUM_home = games.groupby('HOME_TEAM_ID')['HOME_TEAM_WINS'].transform(
+    lambda x: x.cumsum().shift(1)
+)
+
+#cumulative sum away
+games['AWAY_TEAM_WINS'] = (games['HOME_TEAM_WINS'] == 0).astype('int')
+WINS_CUMSUM_away = games.groupby('VISITOR_TEAM_ID')['AWAY_TEAM_WINS'].transform(
+    lambda x: x.cumsum().shift(1)
+)
 
 # 20. Calculate season-to-date win percentage for each team
 games['season_win_pct'] = ...
