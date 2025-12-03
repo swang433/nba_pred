@@ -217,28 +217,74 @@ games['B2B'] = ((games['B2B_home'] == 1) | (games['B2B_away'] == 1)).astype('int
 '''
 intuition: use HOME_TEAM_WINS == 1 with HOME_TEAM_ID to find when a certain team wins at home
 and use HOME_TEAM_WINS == 0 and VISITOR_TEAM_ID to find when a team wins an away game
+merge like other rolling queries
 '''
-#sort to ensure chronological order
-games = games.sort_values(['HOME_TEAM_ID', 'GAME_DATE_EST'])
-games = games.sort_values(['VISITOR_TEAM_ID', 'GAME_DATE_EST'])
 
-#cumulative sum home
-WINS_CUMSUM_home = games.groupby('HOME_TEAM_ID')['HOME_TEAM_WINS'].transform(
-    lambda x: x.cumsum().shift(1)
-)
-
-#cumulative sum away
+'''
+need to include game date column to ensure chronological order
+'''
+#create a column for away team wins
 games['AWAY_TEAM_WINS'] = (games['HOME_TEAM_WINS'] == 0).astype('int')
-WINS_CUMSUM_away = games.groupby('VISITOR_TEAM_ID')['AWAY_TEAM_WINS'].transform(
+
+#home copy
+CUM_home = games[['GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM_ID', 'HOME_TEAM_WINS']].copy()
+CUM_home.columns = ['GAME_ID', 'GAME_DATE_EST', 'TEAM_ID', 'WIN']
+
+#away copy
+CUM_away = games[['GAME_ID', 'GAME_DATE_EST', 'VISITOR_TEAM_ID', 'AWAY_TEAM_WINS']].copy()
+CUM_away.columns = ['GAME_ID', 'GAME_DATE_EST', 'TEAM_ID', 'WIN']
+
+#concatenate and sort
+CUM_all = pd.concat([CUM_away, CUM_home], ignore_index=True)
+CUM_all = CUM_all.sort_values(['TEAM_ID', 'GAME_DATE_EST'])
+
+#groupby, isolate, and transform
+CUM_all['CUM_WINS'] = CUM_all.groupby('TEAM_ID')['WIN'].transform(
     lambda x: x.cumsum().shift(1)
 )
+
+# merge with home stats
+games = games.merge(
+    CUM_all[['GAME_ID', 'TEAM_ID', 'CUM_WINS']], 
+    left_on=['GAME_ID', 'HOME_TEAM_ID'], 
+    right_on=['GAME_ID', 'TEAM_ID'], 
+    how='left'
+).rename(columns={'CUM_WINS': 'CUM_WINS_home'}).drop('TEAM_ID', axis=1)
+
+# merge with away stats
+games = games.merge(
+    CUM_all[['GAME_ID', 'TEAM_ID', 'CUM_WINS']], 
+    left_on=['GAME_ID', 'VISITOR_TEAM_ID'], 
+    right_on=['GAME_ID', 'TEAM_ID'], 
+    how='left'
+).rename(columns={'CUM_WINS': 'CUM_WINS_away'}).drop('TEAM_ID', axis=1)
 
 # 20. Calculate season-to-date win percentage for each team
-games['season_win_pct'] = ...
+games['WIN_PCT'] = CUM_all.groupby('TEAM_ID')['WIN'].transform(
+    lambda x: x.shift(1).expanding().mean() #expanding() considers all past data
+)
 
 # 21. Track current win/loss streak for each team
 # Hint: This is tricky! Think about how to count consecutive wins
-games['win_streak'] = ...
+
+def get_streak(wins_series): 
+    streaks = [0]
+    wins_list = wins_series.tolist()
+    for i in range(1, len(wins_list)): 
+        curr_wins = 0
+        for j in range(i - 1, -1, -1): 
+            if wins_list[j] == 1: 
+                curr_wins += 1
+            else: 
+                break
+        streaks.append(curr_wins)
+    return pd.Series(streaks, index=wins_series.index) #index set to dataframe attribute index
+    
+
+CUM_all = CUM_all.sort_values(['TEAM_ID', 'GAME_DATE_EST'])
+games['win_streak'] = CUM_all.groupby('TEAM_ID')['WIN'].transform(
+    get_streak
+)
 
 # 22. Calculate head-to-head win record between two teams
 # For each game, what's the home team's historical record vs this opponent?
