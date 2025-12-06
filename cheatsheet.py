@@ -288,11 +288,43 @@ games['win_streak'] = CUM_all.groupby('TEAM_ID')['WIN'].transform(
 
 # 22. Calculate head-to-head win record between two teams
 # For each game, what's the home team's historical record vs this opponent?
-games['h2h_wins'] = ...
+'''
+intuition: 
+1. group by home team id and visitor team id
+2. use expanding() for sequential average (mean())
+'''
+#sequential home team win rate
+games = games.sort_values(['GAME_DATE_EST', 'GAME_ID'])
+h2h = games.groupby(['HOME_TEAM_ID', 'VISITOR_TEAM_ID'])['HOME_TEAM_WINS'].expanding().mean().groupby(['HOME_TEAM_ID', 'VISITOR_TEAM_ID']).shift(1)
 
 # 23. Create 'strength of schedule' - average opponent win%
 # For each game, what's the away team's season win%?
-games['opp_win_pct'] = ...
+'''
+intuition: 
+problem meaning: temporal and sequential win rates of each away team each game
+1. rolling or expanding()? 
+2. find away win % so combined usage of expanding() and mean() 
+'''
+games = games.sort_values(['GAME_DATE_EST', 'GAME_ID']) #ensure sorted
+games['away_strength'] = CUM_all.groupby('TEAM_ID')['WIN'].transform(
+    lambda x: x.shift(1).expanding().mean()
+)
+
 
 # 24. Calculate point differential feature: home_pts_L5 - away_pts_L5
-games['pt_diff_advantage'] = ...
+'''
+intuition: 
+1. rolling window=5, min_period=1?
+2. group by home team id and visitor team id like head to head match ups
+3. final verdict: create series for both home and away rolling averages
+NOTE: to calculate last 5 game averages for both teams there needs to be two home/away dfs that are then concatenated like query 12
+'''
+PTS_L5_home = games.groupby('HOME_TEAM_ID')['PTS_home'].transform(
+    lambda x: x.rolling(window=5, min_periods=1).mean().shift(1)
+)
+
+PTS_L5_away = games.groupby('VISITOR_TEAM_ID')['PTS_away'].transform(
+    lambda x: x.rolling(window=5, min_periods=1).mean().shift(1)
+)
+
+games['diff_L5'] = PTS_L5_home - PTS_L5_away
