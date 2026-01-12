@@ -3,47 +3,72 @@ import pandas as pd
 calculates rolling average of "attr" with size "win_sz" 
 main_games is the dataframe to be modified by adding a new column "new_col_name"
 '''
-def rolling_avg(main_games, attr, win_sz, new_col_name): 
-    # Reset index to avoid merge issues
-    main_games = main_games.reset_index(drop=True)
+
+def create_all_rolling_features(games):
+    """Create all rolling features in ONE pass to avoid merge explosions"""
     
-    #extract necessary columns for home and away stats 
-    home = main_games[['GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM_ID', attr + '_home']].copy()
-    home.columns = ['GAME_ID', 'GAME_DATE_EST', 'TEAM_ID', attr]
-    away = main_games[['GAME_ID', 'GAME_DATE_EST', 'VISITOR_TEAM_ID', attr + '_away']].copy()
-    away.columns = ['GAME_ID', 'GAME_DATE_EST', 'TEAM_ID', attr]
+    # Create list to store all team-level rolling stats
+    team_stats = []
     
-    #calculate rolling averages
-    together = pd.concat([home, away], ignore_index=True)
-    together = together.sort_values(['TEAM_ID', 'GAME_DATE_EST']).reset_index(drop=True)
-    together[new_col_name] = together.groupby('TEAM_ID')[attr].transform(
-        lambda x: x.rolling(window=win_sz, min_periods=1).mean().shift(1)
-    )
+    # For each stat, create home and away versions
+    stats_to_roll = {
+        'PTS': ('PPG_L5', 5),
+        'REB': ('RPG_L5', 5),
+        'AST': ('APG_L5', 5),
+        'FG_PCT': ('FG_L5', 5)
+    }
     
-    #drop duplicates to avoid memory leak
-    together_home = together[['GAME_ID', 'TEAM_ID', new_col_name]].copy().drop_duplicates()
-    together_away = together[['GAME_ID', 'TEAM_ID', new_col_name]].copy().drop_duplicates()
+    for stat, (col_name, window) in stats_to_roll.items():
+        # Home games
+        home = games[['GAME_ID', 'GAME_DATE_EST', 'HOME_TEAM_ID', stat + '_home']].copy()
+        home.columns = ['GAME_ID', 'GAME_DATE_EST', 'TEAM_ID', stat]
+        
+        # Away games
+        away = games[['GAME_ID', 'GAME_DATE_EST', 'VISITOR_TEAM_ID', stat + '_away']].copy()
+        away.columns = ['GAME_ID', 'GAME_DATE_EST', 'TEAM_ID', stat]
+        
+        # Combine
+        together = pd.concat([home, away], ignore_index=True)
+        together = together.sort_values(['TEAM_ID', 'GAME_DATE_EST'])
+        
+        # Calculate rolling average
+        together[col_name] = together.groupby('TEAM_ID')[stat].transform(
+            lambda x: x.rolling(window=window, min_periods=1).mean().shift(1)
+        )
+        
+        team_stats.append(together[['GAME_ID', 'TEAM_ID', col_name]])
     
-    #merge back to the main dataframe with suffixes to control naming conflicts
-    main_games = main_games.merge(
-        together_home, 
+    # Merge all team stats at once
+    all_team_stats = team_stats[0]
+    for df in team_stats[1:]:
+        all_team_stats = all_team_stats.merge(df, on=['GAME_ID', 'TEAM_ID'], how='outer')
+    
+    # Now merge back to main games ONCE for home, ONCE for away
+    games = games.merge(
+        all_team_stats,
         left_on=['GAME_ID', 'HOME_TEAM_ID'],
         right_on=['GAME_ID', 'TEAM_ID'],
         how='left',
-        suffixes=('', '_home'))
-    main_games = main_games.drop('TEAM_ID', axis=1)
-    main_games = main_games.rename(columns={new_col_name: new_col_name + '_home'})
+        suffixes=('', '_home')
+    ).drop('TEAM_ID', axis=1)
     
-    main_games = main_games.merge(
-        together_away,
+    # Rename home columns
+    for stat, (col_name, _) in stats_to_roll.items():
+        games = games.rename(columns={col_name: col_name + '_home'})
+    
+    games = games.merge(
+        all_team_stats,
         left_on=['GAME_ID', 'VISITOR_TEAM_ID'],
         right_on=['GAME_ID', 'TEAM_ID'],
         how='left',
-        suffixes=('', '_away'))
-    main_games = main_games.drop('TEAM_ID', axis=1)
-    main_games = main_games.rename(columns={new_col_name: new_col_name + '_away'})
+        suffixes=('', '_away')
+    ).drop('TEAM_ID', axis=1)
     
-    return main_games
+    # Rename away columns
+    for stat, (col_name, _) in stats_to_roll.items():
+        games = games.rename(columns={col_name: col_name + '_away'})
+    
+    return games
 
 def split(main_games, split_ratio): 
     split_index = int(len(main_games) * split_ratio)
