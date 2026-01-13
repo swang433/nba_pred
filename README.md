@@ -6,7 +6,7 @@ A machine learning project that predicts NBA game outcomes with **69.6% accuracy
 
 This model predicts whether the home team will win based on recent team performance metrics. It beats the NBA historical baseline of ~60% home team win rate, demonstrating that recent form and relative team strength are strong predictors of game outcomes.
 
-**Key Achievement:** Improved from 54% (worse than random) to 69.6% accuracy through proper feature engineering and data pipeline optimization.
+**Key Achievement:** Improved from 54% (worse than random) to 69.6% accuracy through proper feature engineering and data cleaning, and pipeline optimization.
 
 ---
 
@@ -60,7 +60,7 @@ Raw CSV (26,651 games)
     ↓
 Clean NaN values → 26,552 games
     ↓
-Single-pass rolling feature engineering
+Single-pass rolling feature engineering as opposed to iterative rolling + merging
     ↓
 Create differential features
     ↓
@@ -94,10 +94,10 @@ XGBoost training & evaluation
 # Broken: 4 function calls = 8 merges
 games = rolling_avg(games, 'PTS', 5, 'PPG_L5')
 games = rolling_avg(games, 'REB', 5, 'RPG_L5')
-# ... each merge multiplied duplicates
 
-# Fixed: Single-pass = 2 merges
-games = create_all_rolling_features(games)
+# Fixed: Single-pass, batch based merges that only inflated the dataframe size by around 15k columns
+# Still room for improvement on the data cleaning aspect
+games = rolling_avgs(games)
 ```
 
 **Solution:** Batch process all features, merge once per team type
@@ -130,7 +130,7 @@ nba_pred/
 ├── main.py                    # Main training pipeline
 ├── feature_funcs.py           # Feature engineering functions
 ├── nba_games/
-│   └── games.csv             # Raw NBA game data
+│   └── games.csv             # Raw NBA game data (hidden)
 ├── feature_importance.png     # Visualization
 └── README.md                 # This file
 ```
@@ -141,7 +141,7 @@ nba_pred/
 
 ### Requirements
 ```bash
-pip install pandas numpy xgboost scikit-learn matplotlib
+pip install -r requirements.txt
 ```
 
 ### Run the Model
@@ -165,7 +165,6 @@ RPG_L5_away         : 0.1507
 APG_L5_away         : 0.1269
 PPG_L5_home         : 0.1028
 PT_DIFF_L5          : 0.0993
-...
 ```
 
 ---
@@ -182,16 +181,16 @@ PT_DIFF_L5          : 0.0993
 ### Feature Engineering
 - Differential features > raw features for competitive scenarios
 - Rolling windows need proper shifting to prevent leakage
-- Batch processing > iterative processing for merge operations
+- Batch merging and processing > iterative, multiple merges to prevent excessive memory use
 
 ### Model Insights
 - Away team recent performance matters more than expected
-- Point differential is important but not dominant (10%)
-- Home court advantage can be overcome by strong road teams
+- Point differential is important but not surprisingly dominant (10%)
+- Home court advantage can be overcome by strong road teams that are dominating rebounds, assists, and points scored (in that order)
 
 ---
 
-## Future Improvements
+## Potential Future Improvements
 
 - [ ] Add rest days / back-to-back game indicators
 - [ ] Include opponent strength metrics
@@ -209,8 +208,7 @@ PT_DIFF_L5          : 0.0993
 
 NBA games have inherent randomness:
 - Injuries, referee calls, clutch moments
-- Even Vegas odds makers struggle with precision
-- 69.6% beating the 60% baseline shows the model captures real signal
+- 69.6% beating the 60% baseline shows that the features point the model in the right direction
 
 **Dataset Considerations:**
 - Historical data (2003-2023)

@@ -5,12 +5,15 @@ main_games is the dataframe to be modified by adding a new column "new_col_name"
 '''
 
 def rolling_avgs(games):
-    """Create all rolling features in ONE pass to avoid merge explosions"""
+    '''
+    Create all rolling features in ONE pass to avoid merge explosions
     
-    # Create list to store all team-level rolling stats
+    Create list to store all team-level rolling stats
+    
+    
+    For each stat, create home and away versions
+    '''
     team_stats = []
-    
-    # For each stat, create home and away versions
     stats_to_roll = {
         'PTS': ('PPG_L5', 5),
         'REB': ('RPG_L5', 5),
