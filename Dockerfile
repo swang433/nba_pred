@@ -1,7 +1,7 @@
 FROM python:3.11-slim
-workdir /app
-copy requirements.txt .
-run pip install -r requirements.txt
-run pip install --no-cache-dir -r requirements.txt
-copy . . .
-cmd ["python", "main.py"]
+WORKDIR /the/workdir/path /app
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY . .
+CMD ["python", "main.py"]
