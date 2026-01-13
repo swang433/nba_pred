@@ -222,12 +222,6 @@ Despite these limitations, the model demonstrates strong predictive power throug
 
 ---
 
-## Contact
-
-For questions or collaboration: [Your Email/GitHub]
-
----
-
 ## Acknowledgments
 
 Dataset: https://www.kaggle.com/datasets/nathanlauga/nba-games
