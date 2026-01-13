@@ -10,9 +10,9 @@ import matplotlib.pyplot as plt
 
 # read, sort chronologically, and dropna to ensure no extra rows being processed
 games = pd.read_csv('nba_games/games.csv').sort_values('GAME_DATE_EST')
-print(f"Before cleaning: {len(games)} games")
+# print(f"Before cleaning: {len(games)} games")
 games = games.dropna(subset=['AST_home', 'AST_away', 'FG_PCT_home', 'FG_PCT_away'])
-print(f"After cleaning: {len(games)} games")
+# print(f"After cleaning: {len(games)} games")
 
 #create a rolling average attr and split into train/test
 games = feature_funcs.rolling_avgs(games)
@@ -29,9 +29,9 @@ games['FG_DIFF_L5'] = games['FG_L5_home'] - games['FG_L5_away']
 print('created field goal PCT differential feature')
 
 # clean and perform train/test split VERY IMPORTANT!!!
-print(f"Before dropna: {len(games)} games")
+# print(f"Before dropna: {len(games)} games")
 games = games.dropna()
-print(f"After dropna: {len(games)} games") 
+# print(f"After dropna: {len(games)} games") 
 train, test = feature_funcs.split(games, .8)
 
 # Combine home and away features for training
@@ -68,16 +68,14 @@ for feature, importance in sorted(feature_importance_dict.items(), key=lambda x:
     print(f"{feature:20s}: {importance:.4f}")
 
 # debug
-print()
-print('Debug:')
-print("NaN counts:")
-print(games[['PT_DIFF_L5', 'REB_DIFF_L5', 'AST_DIFF_L5']].isna().sum())
-print("\nSample of differentials:")
-print(games[['PPG_L5_home', 'PPG_L5_away', 'PT_DIFF_L5']].head(10))
+# print()
+# print('Debug:')
+# print("NaN counts:")
+# print(games[['PT_DIFF_L5', 'REB_DIFF_L5', 'AST_DIFF_L5']].isna().sum())
+# print("\nSample of differentials:")
+# print(games[['PPG_L5_home', 'PPG_L5_away', 'PT_DIFF_L5']].head(10))
 
 # visualize
-import matplotlib.pyplot as plt
-
 # Get importances and sort
 importances = model.feature_importances_
 features = x_train.columns
