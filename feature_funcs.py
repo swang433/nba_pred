@@ -4,7 +4,7 @@ calculates rolling average of "attr" with size "win_sz"
 main_games is the dataframe to be modified by adding a new column "new_col_name"
 '''
 
-def create_all_rolling_features(games):
+def rolling_avgs(games):
     """Create all rolling features in ONE pass to avoid merge explosions"""
     
     # Create list to store all team-level rolling stats

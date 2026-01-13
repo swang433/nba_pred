@@ -8,14 +8,14 @@ import pandas as pd
 import feature_funcs
 import matplotlib.pyplot as plt
 
-# read, sort, and dropna to ensure no extra rows being processed
+# read, sort chronologically, and dropna to ensure no extra rows being processed
 games = pd.read_csv('nba_games/games.csv').sort_values('GAME_DATE_EST')
 print(f"Before cleaning: {len(games)} games")
 games = games.dropna(subset=['AST_home', 'AST_away', 'FG_PCT_home', 'FG_PCT_away'])
 print(f"After cleaning: {len(games)} games")
 
 #create a rolling average attr and split into train/test
-games = feature_funcs.create_all_rolling_features(games)
+games = feature_funcs.rolling_avgs(games)
 print(f'created all rolling averages - {len(games)} rows')
 
 # differential features
@@ -28,7 +28,7 @@ print('created assist differential feature')
 games['FG_DIFF_L5'] = games['FG_L5_home'] - games['FG_L5_away']
 print('created field goal PCT differential feature')
 
-# clean and perform train/test split
+# clean and perform train/test split VERY IMPORTANT!!!
 print(f"Before dropna: {len(games)} games")
 games = games.dropna()
 print(f"After dropna: {len(games)} games") 
