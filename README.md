@@ -232,4 +232,4 @@ Built as part of a data science portfolio to demonstrate:
 
 ---
 
-**Last Updated:** January 2025
+**Last Updated:** January 2026
